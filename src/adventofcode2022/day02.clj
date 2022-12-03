@@ -65,8 +65,7 @@
           (let [own-shape (choose-shape round)]
             (+ (points-from-shape own-shape)
                (points-from-result (result own-shape (->opponent-shape round)))))))
-      (apply +) 
-       ))
+       (apply +)))
 
 (comment
   ;; part 1
