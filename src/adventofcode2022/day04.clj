@@ -77,5 +77,5 @@
 
   ;; part 2
   (count-overlapping-pairs (parse-input example-input)) ;; => 4
-  (count-overlapping-pairs (parse-input (load-input))) ;; => 305
+  (count-overlapping-pairs (parse-input (load-input))) ;; => 811
   )
