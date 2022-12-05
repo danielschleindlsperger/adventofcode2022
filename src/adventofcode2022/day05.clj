@@ -55,21 +55,30 @@ move 1 from 1 to 2")
   (parse-input example-input)
   (parse-input (load-input)))
 
-(defn move-cmd [stacks cmd]
+(defn move-cmd [stacks cmd & {:keys [one-by-one?]}]
   (let [moved-load (take (:qty cmd) (stacks (:from cmd)))
         updated-from-stack (drop (:qty cmd) (stacks (:from cmd)))
-        updated-to-stack (concat (reverse moved-load) (stacks (:to cmd)))]
+        ;; Ideally we'd just move the crates from one stack to the other one-by-one, but this works well enough
+        updated-to-stack (concat (if one-by-one? (reverse moved-load) moved-load) (stacks (:to cmd)))]
     (-> stacks
         (assoc (:from cmd) updated-from-stack)
         (assoc (:to cmd) updated-to-stack))))
 
-(defn work-crane [{:keys [cmds initial-stacks]}]
-  (reduce move-cmd initial-stacks cmds))
+(defn work-crane [{:keys [cmds initial-stacks]} & {:keys [:one-by-one?]}]
+  (reduce #(move-cmd %1 %2 :one-by-one? one-by-one?) initial-stacks cmds))
+
+(defn top-crates [crates]
+  (apply str (->> crates
+                  (sort-by first)
+                  (map second)
+                  (map first))))
 
 (comment
   ;; part 1
-  (work-crane (parse-input example-input)) ;; => QPJPLMNNR
-  (work-crane (parse-input (load-input))) ;; => 
+  (top-crates (work-crane (parse-input example-input) :one-by-one? true)) ;; => CMZ
+  (top-crates (work-crane (parse-input (load-input)) :one-by-one? true)) ;; => QPJPLMNNR
 
   ;; part 2
+  (top-crates (work-crane (parse-input example-input) :one-by-one? false)) ;; => MCD
+  (top-crates (work-crane (parse-input (load-input)) :one-by-one? false)) ;; => BQDNWJPVJ
   )
