@@ -61,6 +61,7 @@ Monkey 3:
         [_ on-true]        (re-find #"If true: throw to monkey (\d+)\n" raw-monkey)
         [_ on-false]       (re-find #"If false: throw to monkey (\d+)"  raw-monkey)]
     {:monkey-id monkey-id
+     :inspected-items 0
      :items (map parse-int (str/split starting-items #", "))
      :worry-operation  (parse-worry-operation operation)
      :throw-to {:divisible-by (parse-int divisible-by)
@@ -108,14 +109,15 @@ Monkey 3:
   (loop [monkey-state monkeys]
     (if (empty? (get-in monkey-state [current-monkey-id :items]))
       monkey-state
-      (let [{:keys [worry-operation items throw-to] :as monkey} (get monkey-state current-monkey-id)
+      (let [{:keys [worry-operation items throw-to] :as _monkey} (get monkey-state current-monkey-id)
             [curr-item & remaining] items
             worry-level (-> curr-item
                             (worry worry-operation)
                             (relieve))]
         (recur (-> monkey-state
                    (throw-item worry-level throw-to)
-                   (assoc current-monkey-id (assoc monkey :items remaining))))))))
+                   (assoc-in [current-monkey-id :items] remaining)
+                   (update-in [current-monkey-id :inspected-items] inc)))))))
 
 (defn playing-order [monkeys]
   (->> monkeys
@@ -123,48 +125,36 @@ Monkey 3:
        (map :monkey-id)
        (sort)))
 
-(defn play-round [state]
-  (reduce (fn [{:keys [curr] :as state} current-monkey-id]
-            (-> state
-                (update :monkey-snapshots conj (curr current-monkey-id))
-                (assoc :curr (play curr current-monkey-id))))
-          state
-          (playing-order (:curr state))))
+(defn play-round [monkeys]
+  (reduce play
+          monkeys
+          (playing-order monkeys)))
 
 (comment
   (play-round (parse-input example-input)))
 
 (defn play-n-rounds [monkeys n]
   (reduce (fn [state _] (play-round state))
-          {:curr monkeys :monkey-snapshots []}
+          monkeys
           (range n)))
 
 (comment
   (play-n-rounds (parse-input example-input) 20))
 
-(defn inspected-items-counts [monkey-states]
-  (reduce (fn [counts {:keys [monkey-id items]}]
-            (update counts monkey-id #(+ (or % 0) (count items))))
-          {}
-          monkey-states))
-
-(defn most-active-monkeys-after-n-rounds [monkeys n]
-  (-> (play-n-rounds monkeys n)
-      (:monkey-snapshots)
-      (inspected-items-counts)))
-
-(defn monkey-business [counts]
-  (->> counts
+(defn monkey-business [monkeys n]
+  (->> (play-n-rounds monkeys n)
        (vals)
+       (map :inspected-items)
        (sort #(compare %2 %1))
        (take 2)
        (apply *)))
 
 (comment
   ;; part 1
-  (monkey-business (most-active-monkeys-after-n-rounds (parse-input example-input) 20)) ;; => 10605
-  (monkey-business (most-active-monkeys-after-n-rounds (parse-input (load-input)) 20)) ;; => 151312
+  (monkey-business (parse-input example-input) 20) ;; => 10605
+  (monkey-business (parse-input (load-input)) 20) ;; => 151312
 
   ;; part 2
+  (monkey-business (parse-input example-input) 10000) ;; => 10605
   )
 
